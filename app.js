@@ -1,20 +1,18 @@
 const express = require('express');
+require("dotenv").config()
 const cors = require('cors');
 const logRequest = require('./middlewares/logger') //importing the logger
 const validatePost = require("./middlewares/validatePost")//importing the POST method validator
 const validatePatch = require("./middlewares/validatePatch")//importing the PATCH method validator
 const errorHandler = require("./middlewares/errorHandler")//importing the global error handler
+const connectDB = require("./databases/db") //importing the DB connector
+const Todo = require("./models/todoModel") //importing the todo schema
 const app = express();
 app.use(express.json()); // Parse JSON bodies
 app.use(cors())
 
-let todos = [
-  { id: 1, task: 'Learn Node.js', completed: false },
-  { id: 2, task: 'Build CRUD API', completed: false },
-  { id: 3, task: 'Do the laundry', completed: false },
-  { id: 4, task: "Get a good night's sleep", completed: false },
-];
 
+connectDB() //DB connector
 app.use(logRequest) //logger for all requests
 
 // GET All – Read
@@ -22,6 +20,33 @@ app.get('/todos', (req, res) => {
   res.status(200).json(todos); // Send array as JSON
 });
 
+// GET Completed
+app.get('/todos/completed', (req, res) => {
+  const completed = todos.filter((t) => t.completed);
+  res.json(completed); // Custom Read!
+});
+
+// Get Active
+app.get('/todos/active', (req, res) => {
+  const activeTasks = todos.filter(a => !a.completed)
+  res.status(200).json(activeTasks)
+})
+
+//GET One - Read One
+app.get('/todos/:id', (req, res, next) => {
+  try {
+    const id = Number.parseInt(req.params.id)
+    if(isNaN(id)) throw new Error("Invalid ID")
+    const task = todos.find(t => t.id === id)
+    if(!task){
+      return res.status(404).json({message: "Task does not exist"})
+    }
+    res.status(200).json(task)
+    
+  } catch (error) {
+    next(error)
+  }
+})
 
 // POST New – Create
 app.post('/todos', validatePost, (req, res, next) => {
@@ -63,40 +88,8 @@ app.delete('/todos/:id', (req, res, next) => {
   }
 });
 
-app.get('/todos/completed', (req, res) => {
-  const completed = todos.filter((t) => t.completed);
-  res.json(completed); // Custom Read!
-});
-
-//Former basic global error handler
-// app.use((err, req, res, next) => {
-//   res.status(500).json({ error: 'Server error!' });
-// });
-
-
-//GET One - Read One
-app.get('/todos/:id', (req, res, next) => {
-  try {
-    const id = Number.parseInt(req.params.id)
-    if(isNaN(id)) throw new Error("Invalid ID")
-    const task = todos.find(t => t.id === id)
-    if(!task){
-      return res.status(404).json({message: "Task does not exist"})
-    }
-    res.status(200).json(task)
-    
-  } catch (error) {
-    next(error)
-  }
-})
-
-//Array Bonus!
-app.get('/todos/active', (req, res) => {
-  const activeTasks = todos.filter(a => !a.completed)
-  res.status(200).json(activeTasks)
-})
 
 app.use(errorHandler) //global error handler
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`Server on port ${PORT}`));
