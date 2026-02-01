@@ -15,6 +15,9 @@ app.use(cors())
 connectDB() //DB connector
 app.use(logRequest) //logger for all requests
 
+app.get('/', (req, res) => {
+  res.status(200).send("<h1>Welcome to my To do API! Now fully migrated to MongoDB 🥹</h1>")
+}
 // GET All – Read (As well as GET completed and GET active tasks) (Now MongoDB Migrated and query paramiterized 🥹)
 app.get('/todos', async (req, res) => {
   const {completed} = req.query
